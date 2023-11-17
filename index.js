@@ -33,12 +33,41 @@ async function run() {
 
         const menuCollection = client.db("bistro").collection("menu");
         const cartsCollection = client.db("bistro").collection("carts");
+        const usersCollection = client.db("bistro").collection("users");
 
+
+        // user related apis
+
+        app.get('/users', async (req, res) => {
+            const result = await usersCollection.find().toArray()
+            res.send(result)
+        })
+
+        app.post('/users', async (req, res) => {
+            const newUser = req.body
+            const email = newUser.email
+            // filtering the email for do not duplicate this
+            const filter = { email: email }
+            const isExist = await usersCollection.findOne(filter)
+            if (isExist) {
+                return res.send({ message: 'user already exist'})
+            }
+
+            const result = await usersCollection.insertOne(newUser)
+            res.send(result)
+        })
+
+
+
+
+        // menu related apis 
         app.get('/menu', async (req, res) => {
             const result = await menuCollection.find().toArray()
             res.send(result)
         })
 
+
+        // carts related apis
         app.get('/carts', async (req, res) => {
             const email = req.query.email
             const query = { email: email }
