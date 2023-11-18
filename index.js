@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const jwt = require('jsonwebtoken')
 require('dotenv').config()
 const port = process.env.PORT || 5000
 
@@ -11,6 +12,9 @@ app.use(express.json())
 app.get('/', (req, res) => {
     res.send('welcome to my server site')
 })
+
+
+
 
 
 
@@ -35,12 +39,55 @@ async function run() {
         const cartsCollection = client.db("bistro").collection("carts");
         const usersCollection = client.db("bistro").collection("users");
 
+        // json web token related apis
+        app.post('/jwt', (req, res) => {
+            const email = req.body
+            const token = jwt.sign(email, process.env.TOKEN_SECRET, { expiresIn: '1h' })
+            return res.send({ token })
+        })
+
+
+        // verify token
+        const verifyToken = (req, res, next) => {
+            const token = req.headers.authorization?.split(' ')[1]
+            // console.log(token)
+            if (!token) {
+                return res.status(401).send({ message: 'unauthorized' })
+            }
+
+            jwt.verify(token, process.env.TOKEN_SECRET, (err, decoded) => {
+                if (err) {
+                    return res.status(401).send({ message: 'unauthorized' })
+                }
+                req.decoded = decoded
+            })
+            next()
+        }
+
+        // admin related apis
+        app.get('/dashboard/admin/:email', verifyToken, async (req, res) => {
+            const email = req.params.email
+            const tokenEmail = req.decoded?.email
+            if (email !== tokenEmail) {
+                return res.status(403).send({ message: 'unauthorized' })
+            }
+
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+
+            let isAdmin = false
+            if (user) {
+                isAdmin = user.role === 'admin'
+            }
+            return res.send({ isAdmin })
+        })
+
+
 
         // user related apis
-
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyToken, async (req, res) => {
             const result = await usersCollection.find().toArray()
-            res.send(result)
+            return res.send(result)
         })
 
         app.post('/users', async (req, res) => {
@@ -54,14 +101,27 @@ async function run() {
             }
 
             const result = await usersCollection.insertOne(newUser)
-            res.send(result)
+            return res.send(result)
+        })
+
+        app.patch('/user/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(query, updatedDoc)
+            return res.send(result)
+
         })
 
         app.delete('/user/:id', async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await usersCollection.deleteOne(query)
-            res.send(result)
+            return res.send(result)
         })
 
 
@@ -69,7 +129,7 @@ async function run() {
         // menu related apis 
         app.get('/menu', async (req, res) => {
             const result = await menuCollection.find().toArray()
-            res.send(result)
+            return res.send(result)
         })
 
 
@@ -78,20 +138,20 @@ async function run() {
             const email = req.query.email
             const query = { email: email }
             const result = await cartsCollection.find(query).toArray()
-            res.send(result)
+            return res.send(result)
         })
 
         app.post('/carts', async (req, res) => {
             const cartData = req.body
             const result = await cartsCollection.insertOne(cartData)
-            res.send(result)
+            return res.send(result)
         })
 
         app.delete('/carts/:id', async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await cartsCollection.deleteOne(query)
-            res.send(result)
+            return res.send(result)
         })
 
         // Send a ping to confirm a successful connection
