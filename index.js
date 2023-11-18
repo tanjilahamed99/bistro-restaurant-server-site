@@ -64,6 +64,19 @@ async function run() {
             next()
         }
 
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded?.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+
+            const isAdmin = user.role === 'admin'
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'forbidden' })
+            }
+            next()
+        }
+
+
         // admin related apis
         app.get('/dashboard/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email
@@ -85,7 +98,7 @@ async function run() {
 
 
         // user related apis
-        app.get('/users', verifyToken, async (req, res) => {
+        app.get('/users', verifyToken,verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray()
             return res.send(result)
         })
@@ -104,7 +117,7 @@ async function run() {
             return res.send(result)
         })
 
-        app.patch('/user/:id', async (req, res) => {
+        app.patch('/user/:id',verifyToken,verifyAdmin, async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const updatedDoc = {
@@ -117,7 +130,7 @@ async function run() {
 
         })
 
-        app.delete('/user/:id', async (req, res) => {
+        app.delete('/user/:id',verifyToken,verifyToken, async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await usersCollection.deleteOne(query)
