@@ -98,7 +98,7 @@ async function run() {
 
 
         // user related apis
-        app.get('/users', verifyToken,verifyAdmin, async (req, res) => {
+        app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray()
             return res.send(result)
         })
@@ -117,7 +117,7 @@ async function run() {
             return res.send(result)
         })
 
-        app.patch('/user/:id',verifyToken,verifyAdmin, async (req, res) => {
+        app.patch('/user/:id', verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const updatedDoc = {
@@ -130,7 +130,7 @@ async function run() {
 
         })
 
-        app.delete('/user/:id',verifyToken,verifyToken, async (req, res) => {
+        app.delete('/user/:id', verifyToken, verifyToken, async (req, res) => {
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await usersCollection.deleteOne(query)
@@ -145,6 +145,11 @@ async function run() {
             return res.send(result)
         })
 
+        app.post('/menu', verifyToken,verifyAdmin ,async (req, res) => {
+            const newMenusData = req.body
+            const result = await menuCollection.insertOne(newMenusData)
+            res.send(result)
+        })
 
         // carts related apis
         app.get('/carts', async (req, res) => {
