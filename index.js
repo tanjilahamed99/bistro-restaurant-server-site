@@ -33,7 +33,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const menuCollection = client.db("bistro").collection("menu");
         const cartsCollection = client.db("bistro").collection("carts");
@@ -145,11 +145,45 @@ async function run() {
             return res.send(result)
         })
 
-        app.post('/menu', verifyToken,verifyAdmin ,async (req, res) => {
+        app.get('/menu/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await menuCollection.findOne(query)
+            return res.send(result)
+        })
+
+        app.patch('/menu/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const updateItem = req.body
+            const updateDoc = {
+                $set: {
+                    name: updateItem.name,
+                    recipe: updateItem.recipe,
+                    price: updateItem.price,
+                    image: updateItem.image,
+                    category: updateItem.category
+                }
+            }
+            const result = await menuCollection.updateOne(query, updateDoc)
+            return res.send(result)
+        })
+
+        app.post('/menu', verifyToken, verifyAdmin, async (req, res) => {
             const newMenusData = req.body
             const result = await menuCollection.insertOne(newMenusData)
             res.send(result)
         })
+
+        app.delete('/menu/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await menuCollection.deleteOne(query)
+            return res.send(result)
+        })
+
+
+
 
         // carts related apis
         app.get('/carts', async (req, res) => {
